@@ -7,6 +7,7 @@
         - Precision
         - Recall
         - Normalized Discounted Cumulative Gain - NDCG
+        - Mean Reciprocal Rank - MRR
 
     Types of evaluation:
         - Simple: Evaluation with traditional strategy
@@ -20,14 +21,14 @@ import numpy as np
 import random
 
 from caserec.evaluation.base_evaluation import BaseEvaluation
-from caserec.evaluation.item_recomendation_functions import precision_at_k, mean_average_precision, ndcg_at_k
+from caserec.evaluation.item_recomendation_functions import precision_at_k, mean_average_precision, ndcg_at_k, reciprocal_rank
 
 __author__ = 'Arthur Fortes <fortes.arthur@gmail.com>'
 
 
 class ItemRecommendationEvaluation(BaseEvaluation):
     def __init__(self, sep='\t', n_ranks=list([1, 3, 5, 10]),
-                 metrics=list(['PREC', 'RECALL', 'MAP', 'NDCG']), all_but_one_eval=False,
+                 metrics=list(['PREC', 'RECALL', 'MAP', 'NDCG', 'MRR']), all_but_one_eval=False,
                  verbose=True, as_table=False, table_sep='\t'):
         """
         Class to evaluate predictions in a item recommendation (ranking) scenario
@@ -39,7 +40,7 @@ class ItemRecommendationEvaluation(BaseEvaluation):
         :type n_ranks: list, default [1, 3, 5, 10]
 
         :param metrics: List of evaluation metrics
-        :type metrics: list, default ('PREC', 'RECALL', 'MAP', 'NDCG')
+        :type metrics: list, default ('PREC', 'RECALL', 'MAP', 'NDCG', 'MRR')
 
         :param all_but_one_eval: If True, considers only one pair (u, i) from the test set to evaluate the ranking
         :type all_but_one_eval: bool, default False
@@ -95,6 +96,7 @@ class ItemRecommendationEvaluation(BaseEvaluation):
             partial_recall = list()
             partial_ndcg = list()
             partial_map = list()
+            partial_mrr = list()
 
             for user in test_set['users']:
                 hit_cont = 0
@@ -112,6 +114,7 @@ class ItemRecommendationEvaluation(BaseEvaluation):
                     partial_recall.append((float(len(intersection)) / float(len(test_set['items_seen_by_user'][user]))))
                     partial_map.append(mean_average_precision([ig_ranking]))
                     partial_ndcg.append(ndcg_at_k(list(ig_ranking)))
+                    partial_mrr.append(reciprocal_rank(list(ig_ranking)))
 
                 partial_map_all = partial_map
 
@@ -121,8 +124,8 @@ class ItemRecommendationEvaluation(BaseEvaluation):
                 'RECALL@' + str(n): round(sum(partial_recall) / float(num_user), 6),
                 'NDCG@' + str(n): round(sum(partial_ndcg) / float(num_user), 6),
                 'MAP@' + str(n): round(sum(partial_map) / float(num_user), 6),
-                'MAP': round(sum(partial_map_all) / float(num_user), 6)
-
+                'MAP': round(sum(partial_map_all) / float(num_user), 6),
+                'MRR@': + str(n): round(sum(partial_mrr) / float(num_user), 6)
             })
 
         # if (self.save_eval_file is not None):

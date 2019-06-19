@@ -125,3 +125,4 @@ class RatingPredictionEvaluation(BaseEvaluation):
                                          metrics=self.metrics).evaluate_recommender(new_predict_set, new_test_set)
 
         return eval_results
+    

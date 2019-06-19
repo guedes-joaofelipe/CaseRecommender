@@ -60,7 +60,7 @@ class BaseEvaluation(object):
         :type test_set: dict
 
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def evaluate_with_files(self, prediction_file, test_file):
         """
