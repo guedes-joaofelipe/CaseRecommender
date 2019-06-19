@@ -88,3 +88,105 @@ def ndcg_at_k(ranking):
     dcg_ranking = ranking[0] + np.sum(ranking[1:] / np.log2(np.arange(2, ranking.size + 1)))
 
     return dcg_ranking / dcg_ideal
+
+
+def reciprocal_rank(ranking):
+    """
+        Score is reciprocal of the rank of the first relevant item. 
+        First element is rank 1. Relevance is binary (nonzero is relevant).
+
+    :param ranking: Relevance scores (list or numpy) in rank order (first element is the first item)
+    :type ranking: list, np.array
+
+    :return: reciprocal rank of a ranking list
+    :rtype: float
+    """
+    ranking = np.asfarray(ranking)
+    index_found_ranks = np.where(ranking.astype(int) == 1)[0]
+    if index_found_ranks.size > 0:
+        rank = index_found_ranks[0] + 1
+        return 1/float(rank)    
+    return 0
+
+def mean_reciprocal_rank(rankings):
+    """
+        Score is the mean of reciprocal ranks on an array of rankings. 
+
+        :param rankings: array of rankings, where ranking is a relevance score 
+            (list of numpy) in rank order (first element is the most relevant)
+        :type ranking: list, np.array
+
+        :return: mean reciprocal rank of a list of rankings 
+        :rtype: float
+    """
+
+    return np.mean([reciprocal_rank(ranking) for ranking in rankings])
+
+# def rank_accuracy(ranking):
+#   FUNCTION IN DEVELOPMENT
+#   ISSUE: when all correct items are in the ranking but all in the incorrect order, I want a 0.5 score
+#
+#     """
+#     Score is rank accuracy . Relevance is positive real values.  Can use binary
+#     as the previous methods.
+
+#     For a N-size list:
+#         If item is outside the sequence: 0 score
+#         Elif item is in sequence but in the wrong position: 1/N score
+#         Else (item in the sequence and in the right position): 1 score
+
+#     """    
+#     ranking = np.asfarray(ranking)
+#     ranking_ideal = np.asfarray(sorted(ranking, reverse=True))    
+#     ideal_index = np.argsort(-ranking_ideal)
+
+#     score = 0
+#     ranking_length = len(ranking)
+
+#     for item_index in np.arange(ranking_length):
+#         if ranking[item_index] == 0:
+#             item_score = 0
+#         elif item_index == ideal_index[item_index]:
+#             item_score = 1
+#         else:
+#             item_score = float(1/ranking_length)        
+#         score += item_score
+
+#     print ("Rank Acc for {}: {}".format(ranking, float(score/ranking_length)))
+#     return float(score/ranking_length)
+    
+# def mean_rank_accuracy(rankings):
+#     """
+#         Score is the mean rank accuracy of a list of rankings. Relevance is positive real values.  Can use binary
+#         as the previous methods.
+        
+#         :param rankings: a list of rankings
+#         :ptype: [list, np.array]
+        
+#         :return: mean rank accuracy
+#         :rtype: float
+#     """
+#     return np.mean([rank_accuracy(ranking) for ranking in rankings])
+
+
+if __name__ == "__main__":
+    
+    rankings = [[1, 1, 1, 1, 1, 1], # Totally right ranking
+                [0, 0, 0, 0, 0, 0], # Totally wrong ranking
+                [0, 1, 1, 0, 0, 1]] # Partially right ranking
+    k = 5
+
+    print ("-"*10)
+    print ("Precision@{}: {}".format(k, precision_at_k(rankings[0], k)))
+
+    print ("-"*10)
+    print ("Reciprocal Rank: ", reciprocal_rank(rankings[0]))
+    print ("Mean Reciprocal Rank: ", mean_reciprocal_rank(rankings))
+
+    # print ("-"*10)    
+    # rankings = [[0.6, 0.5, 0.4, 0.3, 0.2, 0.1], # Totally right ranking
+    #             [0, 0, 0, 0, 0, 0], # Totally wrong ranking
+    #             [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]] # Partially right ranking (wrong order)
+    # print ("Rankings: ", rankings)
+    # print ("Rank Accuracy: ", rank_accuracy(rankings[0]))    
+    # print ("Mean Rank Accuracy: ", mean_rank_accuracy(rankings))
