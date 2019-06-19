@@ -12,7 +12,7 @@ import numpy as np
 
 from caserec.evaluation.rating_prediction import RatingPredictionEvaluation
 from caserec.utils.extra_functions import print_header
-from caserec.utils.process_data import ReadFile, WriteFile
+from caserec.utils.process_data import ReadFile, ReadDataframe, WriteFile
 
 __author__ = 'Arthur Fortes <fortes.arthur@gmail.com>'
 
@@ -24,13 +24,17 @@ class BaseRatingPrediction(object):
          This class is base for all rating prediction algorithms. Inherits the class Recommender
          and implements / adds common methods and attributes for rating prediction approaches.
 
-        :param train_file: File which contains the train set. This file needs to have at least 3 columns
+        :param train_file: Data which contains the train set. If type(train_file) is a string, it is considered as a filepath to a train_file.         
+        Otherwise, it is considered as a pandas dataframe. 
+        This file needs to have at least 3 columns
         (user item feedback_value).
         :type train_file: str
 
-        :param test_file: File which contains the test set. This file needs to have at least 3 columns
+        :param test_file: Data which contains the test set. If type(test_file) is a string, it is considered as a filepath to a test_file. 
+        Otherwise, it is considered as a pandas dataframe. 
+        This data needs to have at least 3 columns
         (user item feedback_value).
-        :type test_file: str, default None
+        :type test_file: [str, pd.DataFrame], default None
 
         :param output_file: File with dir to write the final predictions
         :type output_file: str, default None
@@ -47,7 +51,7 @@ class BaseRatingPrediction(object):
         """
 
         self.train_file = train_file
-        self.test_file = test_file
+        self.test_file = test_file       
         self.similarity_metric = similarity_metric
         self.output_file = output_file
         self.sep = sep
@@ -68,19 +72,26 @@ class BaseRatingPrediction(object):
         self.extra_info_header = None
         self.predictions = []
 
-    def read_files(self):
+    def read_data(self):
         """
         Method to initialize recommender algorithm.
-
+        :ret: dict_file = {'feedback': dict_feedback, 'users': list_users, 'items': list_items, 
+                       'sparsity': sparsity, 'number_interactions': number_interactions, 'users_viewed_item': users_viewed_item, 'items_unobserved': items_unobserved,
+                       'items_seen_by_user': items_seen_by_user, 'mean_value': mean_value, 'max_value': max(list_feedback), 'min_value': min(list_feedback)}
         """
 
-        # Getting train_set as a dict_file = {'feedback': dict_feedback, 'users': list_users, 'items': list_items, 
-        #               'sparsity': sparsity, 'number_interactions': number_interactions, 'users_viewed_item': users_viewed_item, 'items_unobserved': items_unobserved,
-        #               'items_seen_by_user': items_seen_by_user, 'mean_value': mean_value, 'max_value': max(list_feedback), 'min_value': min(list_feedback)}
-        self.train_set = ReadFile(self.train_file, sep=self.sep).read() 
+        # Checking if input data is a filepath string or a pandas dataframe
+        if isinstance(self.train_file, str):
+            self.train_set = ReadFile(self.train_file, sep=self.sep).read() 
+        else:
+            self.train_set = ReadDataframe(self.train_file).read() 
 
+        # Setting lists users, items, item_to_item_id, item_id_to_item, user_to_user_id and user_id_to_user depending on whether test_file is set
         if self.test_file is not None:
-            self.test_set = ReadFile(self.test_file, sep=self.sep).read()
+            if isinstance(self.test_file, str):
+                self.test_set = ReadFile(self.test_file, sep=self.sep).read() 
+            else:
+                self.test_set = ReadDataframe(self.test_file).read() 
 
             # Combining users/items from train and test set
             self.users = sorted(set(list(self.train_set['users']) + list(self.test_set['users'])))
@@ -180,7 +191,7 @@ class BaseRatingPrediction(object):
         """
 
         # read files
-        self.read_files()
+        self.read_data()
 
         # initialize empty predictions (Don't remove: important to Cross Validation)
         self.predictions = []

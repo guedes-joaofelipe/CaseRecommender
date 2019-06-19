@@ -7,11 +7,84 @@
 # © 2018. Case Recommender (MIT License)
 
 import pandas as pd
-
+import numpy as np
 from caserec.utils.extra_functions import check_error_file
 
 __author__ = 'Arthur Fortes <fortes.arthur@gmail.com>'
 
+class ReadDataframe(object):
+    def __init__(self, df_feedback, header=None, names=None, as_binary=False, binary_col=2):
+        self.df_feedback = df_feedback
+        self.header = header
+        self.names = names
+        self.as_binary = as_binary
+        self.binary_col = binary_col
+
+    def read(self):
+            """
+            Method to read pandas' dataframes and collect important information.
+
+            :return: Dictionary with file information
+            :rtype: dict
+
+            """
+
+            dict_feedback = {}
+            items_unobserved = {}
+            items_seen_by_user = {}
+            users_viewed_item = {}            
+
+            list_users = self.df_feedback['user'].unique()
+            list_items = self.df_feedback['item'].unique()
+
+            number_interactions = self.df_feedback.shape[0]
+
+            for user_id in list_users:
+                items = self.df_feedback[self.df_feedback['user'] == user_id]['item']
+                values = self.df_feedback[self.df_feedback['user'] == user_id]['feedback_value'].apply(lambda x: 1.0 if self.as_binary else x)
+                dict_feedback[user_id] = dict(zip(items, values))    
+                items_seen_by_user[user_id] = list(items)
+                
+            for item_id in self.df_feedback['item'].unique():
+                users = self.df_feedback[self.df_feedback['item'] == item_id]['user']
+                users_viewed_item[item_id] = list(users)
+
+            list_users = sorted(list(list_users))
+            list_items = sorted(list(list_items))
+
+            # Create a dictionary with unobserved items for each user / Map user with its respective id
+            for user in list_users:
+                items_unobserved[user] = list(set(list_items) - set(items_seen_by_user[user]))
+
+            # Calculate the sparsity of the set: N / (nu * ni)
+            sparsity = (1 - (number_interactions / float(len(list_users) * len(list_items)))) * 100    
+
+            dict_file = {
+                    'feedback': dict_feedback,
+                    'users': list_users,
+                    'items': list_items,
+                    'sparsity': sparsity,
+                    'number_interactions': number_interactions,
+                    'users_viewed_item': users_viewed_item,
+                    'items_unobserved': items_unobserved,
+                    'items_seen_by_user': items_seen_by_user,
+                    'mean_value': np.mean(self.df_feedback['feedback_value']),
+                    'max_value': np.max(self.df_feedback['feedback_value']),
+                    'min_value': np.min(self.df_feedback['feedback_value']),
+                }
+
+            return dict_file
+
+    def read_like_triple(self):
+        """
+        Method to return information in the file as a triple. eg. (user, item, value)
+
+        :return: List with triples in the file
+        :rtype: list
+
+        """        
+
+        return self.df_feedback[['user', 'item', 'feedback_value']].values.tolist()
 
 class ReadFile(object):
     def __init__(self, input_file, sep='\t', header=None, names=None, as_binary=False, binary_col=2):
@@ -298,3 +371,19 @@ class WriteFile(object):
         """
 
         df.to_csv(self.output_file, sep=self.sep, mode=self.mode, header=None, index=False)
+
+if __name__ == "__main__":    
+
+    # Set the path to a data file
+    train_file = './../../../../Datasets/MovieLens/100k_raw/u.data'
+    df_feedback = pd.read_csv(train_file, sep='\t', header=None, names = ['user', 'item', 'feedback_value', 'timestamp'])
+
+    print (df_feedback.head())
+
+    # Testing ReadDataframe.read()
+    dict_feedback = ReadDataframe(df_feedback, header=None, names=None, as_binary=False, binary_col=2).read()
+    print (dict_feedback.keys())
+
+    # Testing ReadDataframe.read_like_triple()
+    # dict_feedback = ReadDataframe(df_feedback, header=None, names=None, as_binary=False, binary_col=2).read_like_triple()
+    # print (dict_feedback[0:2])

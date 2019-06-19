@@ -48,7 +48,7 @@ Temporary Items
 *.pyc
 *.ipynb_checkpoints
 .ipynb_checkpoints
-
+*.dat
 
 # Ignoring wheel folders
 build/

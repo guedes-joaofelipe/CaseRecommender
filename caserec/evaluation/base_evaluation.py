@@ -143,7 +143,7 @@ class BaseEvaluation(object):
 
         return folds_results
 
-    def print_results(self, evaluation_results, save_eval_file = None):
+    def print_results(self, evaluation_results):
         """
         Method to print the results
 

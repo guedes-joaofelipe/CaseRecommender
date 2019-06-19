@@ -8,6 +8,7 @@
 
 from caserec.recommenders.rating_prediction.svdplusplus import SVDPlusPlus
 from caserec.recommenders.rating_prediction.nnmf import NNMF
+from caserec.recommenders.rating_prediction.ae import AE
 from caserec.recommenders.rating_prediction.matrixfactorization import MatrixFactorization
 from caserec.utils.cross_validation import CrossValidation
 
@@ -37,4 +38,4 @@ te = '../../datasets/ml-100k/folds/0/test.dat'
 # MatrixFactorization(tr, te).compute()
 # SVDPlusPlus(tr, te).compute()
 
-NNMF(tr, te, factors = 20).compute()
+# NNMF(tr, te, factors = 20).compute()
