@@ -32,7 +32,7 @@ def precision_at_k(ranking, k):
     assert k >= 1
     ranking = np.asarray(ranking)[:k] != 0
     if ranking.size != k:
-        raise ValueError('Relevance score length < k')
+        raise ValueError('Relevance score length ({}) < k ({})'.format(ranking.size, k))
     return np.mean(ranking)
 
 
@@ -69,7 +69,7 @@ def mean_average_precision(ranking):
     return np.mean([average_precision(r) for r in ranking])
 
 
-def ndcg_at_k(ranking):
+def ndcg_at_k(ranking, k):
     """
     Score is normalized discounted cumulative gain (ndcg). Relevance is positive real values.  Can use binary
     as the previous methods.
@@ -82,7 +82,12 @@ def ndcg_at_k(ranking):
 
     """
 
-    ranking = np.asfarray(ranking)
+    k = len(ranking) if k is None else k 
+    assert k >= 1
+    # if ranking.size != k:
+    #     raise ValueError('Relevance score length ({}) < k ({})'.format(ranking.size, k))
+
+    ranking = np.asfarray(ranking)[:k] 
     r_ideal = np.asfarray(sorted(ranking, reverse=True))
     dcg_ideal = r_ideal[0] + np.sum(r_ideal[1:] / np.log2(np.arange(2, r_ideal.size + 1)))
     dcg_ranking = ranking[0] + np.sum(ranking[1:] / np.log2(np.arange(2, ranking.size + 1)))
@@ -90,7 +95,7 @@ def ndcg_at_k(ranking):
     return dcg_ranking / dcg_ideal
 
 
-def reciprocal_rank(ranking):
+def reciprocal_rank(ranking, k=None):
     """
         Score is reciprocal of the rank of the first relevant item. 
         First element is rank 1. Relevance is binary (nonzero is relevant).
@@ -101,14 +106,17 @@ def reciprocal_rank(ranking):
     :return: reciprocal rank of a ranking list
     :rtype: float
     """
-    ranking = np.asfarray(ranking)
+    k = len(ranking) if k is None else k
+    assert k >= 1
+
+    ranking = np.asfarray(ranking)[:k]
     index_found_ranks = np.where(ranking.astype(int) == 1)[0]
     if index_found_ranks.size > 0:
         rank = index_found_ranks[0] + 1
         return 1/float(rank)    
     return 0
 
-def mean_reciprocal_rank(rankings):
+def mean_reciprocal_rank(rankings, k=None):
     """
         Score is the mean of reciprocal ranks on an array of rankings. 
 
@@ -120,7 +128,7 @@ def mean_reciprocal_rank(rankings):
         :rtype: float
     """
 
-    return np.mean([reciprocal_rank(ranking) for ranking in rankings])
+    return np.mean([reciprocal_rank(ranking, k=k) for ranking in rankings])
 
 # def rank_accuracy(ranking):
 #   FUNCTION IN DEVELOPMENT
@@ -173,15 +181,17 @@ if __name__ == "__main__":
     
     rankings = [[1, 1, 1, 1, 1, 1], # Totally right ranking
                 [0, 0, 0, 0, 0, 0], # Totally wrong ranking
-                [0, 1, 1, 0, 0, 1]] # Partially right ranking
-    k = 5
+                [0, 0, 1, 0, 0, 1]] # Partially right ranking
+    k = 2
 
     print ("-"*10)
-    print ("Precision@{}: {}".format(k, precision_at_k(rankings[0], k)))
+    print ("Precision@{}: {}".format(k, precision_at_k(rankings[-1], k)))
 
     print ("-"*10)
-    print ("Reciprocal Rank: ", reciprocal_rank(rankings[0]))
+    print ("Reciprocal Rank: ", reciprocal_rank(rankings[-1]))
+    print ("Reciprocal Rank@{}: {}".format(k, reciprocal_rank(rankings[-1], k)))
     print ("Mean Reciprocal Rank: ", mean_reciprocal_rank(rankings))
+    print ("Mean Reciprocal Rank@{}: {}".format(k, mean_reciprocal_rank(rankings, k)))
 
     # print ("-"*10)    
     # rankings = [[0.6, 0.5, 0.4, 0.3, 0.2, 0.1], # Totally right ranking

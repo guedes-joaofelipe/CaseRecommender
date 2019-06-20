@@ -125,7 +125,7 @@ class ItemRecommendationEvaluation(BaseEvaluation):
                 'NDCG@' + str(n): round(sum(partial_ndcg) / float(num_user), 6),
                 'MAP@' + str(n): round(sum(partial_map) / float(num_user), 6),
                 'MAP': round(sum(partial_map_all) / float(num_user), 6),
-                'MRR@': + str(n): round(sum(partial_mrr) / float(num_user), 6)
+                'MRR@' + str(n): round(sum(partial_mrr) / float(num_user), 6)
             })
 
         # if (self.save_eval_file is not None):

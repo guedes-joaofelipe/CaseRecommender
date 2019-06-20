@@ -11,7 +11,7 @@ import numpy as np
 
 from caserec.evaluation.item_recommendation import ItemRecommendationEvaluation
 from caserec.utils.extra_functions import print_header
-from caserec.utils.process_data import ReadFile, WriteFile
+from caserec.utils.process_data import ReadFile, ReadDataframe, WriteFile
 
 __author__ = 'Arthur Fortes <fortes.arthur@gmail.com>'
 
@@ -75,15 +75,22 @@ class BaseItemRecommendation(object):
         self.extra_info_header = None
         self.ranking = []
 
-    def read_files(self):
+    def read_data(self):
         """
-        Method to initialize recommender algorithm.
+        Method to initialize recommender algorithm.s
 
         """
-        self.train_set = ReadFile(self.train_file, sep=self.sep, as_binary=self.as_binary).read()
+        if isinstance(self.train_file, str):
+            self.train_set = ReadFile(self.train_file, sep=self.sep, as_binary=self.as_binary).read()
+        else:
+            self.train_set = ReadDataframe(self.train_file, as_binary=self.as_binary).read() 
 
         if self.test_file is not None:
-            self.test_set = ReadFile(self.test_file).read()
+            if isinstance(self.test_file, str):
+                self.test_set = ReadFile(self.test_file, sep=self.sep).read() 
+            else:
+                self.test_set = ReadDataframe(self.test_file).read() 
+
             self.users = sorted(set(list(self.train_set['users']) + list(self.test_set['users'])))
             self.items = sorted(set(list(self.train_set['items']) + list(self.test_set['items'])))
         else:
@@ -137,7 +144,7 @@ class BaseItemRecommendation(object):
         Method to evaluate the final ranking
 
         :param metrics: List of evaluation metrics
-        :type metrics: list, default ('Prec', 'Recall', 'MAP, 'NDCG')
+        :type metrics: list, default ('Prec', 'Recall', 'MAP, 'NDCG', 'MRR')
 
         :param verbose: Print the evaluation results
         :type verbose: bool, default True
@@ -156,7 +163,7 @@ class BaseItemRecommendation(object):
         self.evaluation_results = {}
 
         if metrics is None:
-            metrics = list(['PREC', 'RECALL', 'MAP', 'NDCG'])
+            metrics = list(['PREC', 'RECALL', 'MAP', 'NDCG', 'MRR'])
 
         if n_ranks is None:
             n_ranks = list([1, 3, 5, 10])
@@ -185,7 +192,7 @@ class BaseItemRecommendation(object):
         """
 
         # read files
-        self.read_files()
+        self.read_data()
 
         # initialize empty ranking (Don't remove: important to Cross Validation)
         self.ranking = []
