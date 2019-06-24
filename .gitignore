@@ -17,6 +17,12 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Ignoring windows wheel builder script
+*.bat
+
+# Ignoring dev folder
+./caserec/dev/
+
 # =========================
 # Operating System Files
 # =========================
@@ -54,3 +60,4 @@ Temporary Items
 build/
 dist/
 CaseRecommender.egg-info/
+

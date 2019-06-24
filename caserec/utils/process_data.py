@@ -12,14 +12,41 @@ from caserec.utils.extra_functions import check_error_file
 
 __author__ = 'Arthur Fortes <fortes.arthur@gmail.com>'
 
-class ReadDataframe(object):
-    def __init__(self, df_feedback, header=None, names=None, as_binary=False, binary_col=2):
-        self.df_feedback = df_feedback
-        self.header = header
+class ReadData(object):
+    """ An abstract class for ReadFile and ReadDataframe """
+
+    def __init__(self, names=None, as_binary=False, binary_col=2):        
         self.names = names
         self.as_binary = as_binary
         self.binary_col = binary_col
 
+    def read(self):
+        """Method to be implemented for each child-class using their respective reading strategies"""
+        raise NotImplementedError
+
+    def read_like_triple(self):
+        """Method to be implemented for each child-class using their respective reading strategies"""
+        raise NotImplementedError
+
+    def read_metadata_or_similarity(self):
+        """Method to be implemented for each child-class using their respective reading strategies"""
+        raise NotImplementedError
+
+    def read_item_category(self):
+        """Method to be implemented for each child-class using their respective reading strategies"""
+        raise NotImplementedError
+
+    
+
+class ReadDataframe(ReadData):
+    def __init__(self, df_feedback, names=None, as_binary=False, binary_col=2):
+
+        super().__init__(names=names, as_binary=as_binary, binary_col=binary_col)
+    
+        self.df_feedback = df_feedback        
+        if names is not None:
+            self.df_feedback.columns = names
+        
     def read(self):
             """
             Method to read pandas' dataframes and collect important information.
@@ -83,10 +110,49 @@ class ReadDataframe(object):
         :rtype: list
 
         """        
+        return self.df_feedback.values.tolist()
 
-        return self.df_feedback[['user', 'item', 'feedback_value']].values.tolist()
+    def read_metadata_or_similarity(self):
+        """
+        Method to read metadata or similarity files. Expects at least 2 columns for metadata dataframe (item metadata or
+        item metadata score) and 3 columns for similarity files (item item similarity)
 
-class ReadFile(object):
+        :return: Dictionary with file information
+        :rtype: dict
+        """
+
+        dict_values = {}
+        list_col_1 = set()
+        list_col_2 = set()
+        mean_value = 0
+        number_interactions = self.df_feedback.shape[0]
+        
+        for index, row in self.df_feedback.iterrows():   
+            if len(row) == 1:
+                raise TypeError("Error - invalid number of columns: {}!".format(len(row)))
+            elif len(row) == 2:
+                attr1, attr2 = int(row[0]), row[1]
+                dict_values.setdefault(attr1, {}).update({attr2: 1.0})
+                list_col_1.add(attr1)
+                list_col_2.add(attr2)                
+            else:
+                attr1, attr2, value = int(row[0]), row[1], float(row[2])
+                dict_values.setdefault(attr1, {}).update({attr2: 1.0 if self.as_binary else value})
+                list_col_1.add(attr1)
+                list_col_2.add(attr2)
+                mean_value += value                
+
+        dict_file = {
+                        'dict': dict_values,
+                        'col_1': list(list_col_1),
+                        'col_2': list(list_col_2),
+                        'mean_value': mean_value//number_interactions,
+                        'number_interactions': number_interactions
+                     }
+
+        return dict_file
+
+class ReadFile(ReadData):
     def __init__(self, input_file, sep='\t', header=None, names=None, as_binary=False, binary_col=2):
         """
         ReadFile is responsible to read and process all input files in the Case Recommender
@@ -113,12 +179,10 @@ class ReadFile(object):
 
         """
 
+        super().__init__(names=names, as_binary=as_binary, binary_col=binary_col)        
+        self.header=header 
         self.input_file = input_file
-        self.sep = sep
-        self.header = header
-        self.names = names
-        self.as_binary = as_binary
-        self.binary_col = binary_col
+        self.sep = sep        
 
         check_error_file(self.input_file)
 
@@ -133,14 +197,11 @@ class ReadFile(object):
 
         list_users = set()
         list_items = set()
-
         list_feedback = []
-
         dict_feedback = {} # To be filled as: {user_id: [item_id_1, item_id_2, ..., item_id_N]}
         items_unobserved = {}
         items_seen_by_user = {}
         users_viewed_item = {}
-
         mean_value = 0
         number_interactions = 0
 
@@ -214,8 +275,7 @@ class ReadFile(object):
 
                     if len(inline) == 1:
                         raise TypeError("Error: Space type (sep) is invalid!")
-
-                    if len(inline) == 2:
+                    elif len(inline) == 2:
                         attr1, attr2 = int(inline[0]), inline[1]
                         dict_values.setdefault(attr1, {}).update({attr2: 1.0})
                         list_col_1.add(attr1)
@@ -233,7 +293,7 @@ class ReadFile(object):
                         'dict': dict_values,
                         'col_1': list(list_col_1),
                         'col_2': list(list_col_2),
-                        'mean_value': mean_value,
+                        'mean_value': mean_value/number_interactions,
                         'number_interactions': number_interactions
                      }
 
@@ -381,7 +441,7 @@ if __name__ == "__main__":
     print (df_feedback.head())
 
     # Testing ReadDataframe.read()
-    dict_feedback = ReadDataframe(df_feedback, header=None, names=None, as_binary=False, binary_col=2).read()
+    dict_feedback = ReadDataframe(df_feedback, names=None, as_binary=False, binary_col=2).read()
     print (dict_feedback.keys())
 
     # Testing ReadDataframe.read_like_triple()

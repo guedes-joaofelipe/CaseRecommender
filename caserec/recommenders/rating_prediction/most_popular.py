@@ -78,7 +78,7 @@ class MostPopular(BaseRatingPrediction):
 
                     self.predictions.append((user, item, feedback_value))
         else:
-            raise NotImplemented
+            raise NotImplementedError
 
     def compute(self, verbose=True, metrics=None, verbose_evaluation=True, as_table=False, table_sep='\t'):
         """

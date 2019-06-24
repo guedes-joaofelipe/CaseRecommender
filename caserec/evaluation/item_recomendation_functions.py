@@ -69,7 +69,7 @@ def mean_average_precision(ranking):
     return np.mean([average_precision(r) for r in ranking])
 
 
-def ndcg_at_k(ranking, k):
+def ndcg_at_k(ranking, k = None):
     """
     Score is normalized discounted cumulative gain (ndcg). Relevance is positive real values.  Can use binary
     as the previous methods.

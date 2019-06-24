@@ -113,8 +113,8 @@ class ItemRecommendationEvaluation(BaseEvaluation):
                     partial_precision.append(precision_at_k([ig_ranking], n))
                     partial_recall.append((float(len(intersection)) / float(len(test_set['items_seen_by_user'][user]))))
                     partial_map.append(mean_average_precision([ig_ranking]))
-                    partial_ndcg.append(ndcg_at_k(list(ig_ranking)))
-                    partial_mrr.append(reciprocal_rank(list(ig_ranking)))
+                    partial_ndcg.append(ndcg_at_k(list(ig_ranking), n))
+                    partial_mrr.append(reciprocal_rank(list(ig_ranking), n))
 
                 partial_map_all = partial_map
 
