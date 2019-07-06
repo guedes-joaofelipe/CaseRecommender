@@ -178,8 +178,9 @@ class BprMF(BaseItemRecommendation):
         :return: known item, unknown item
 
         """
-        return random.choice(list(self.train_set['items_seen_by_user'][user])), random.choice(
-            self.train_set['items_unobserved'][user])
+        if len(self.train_set['items_unobserved'][user]) == 0:
+            return random.choice(list(self.train_set['items_seen_by_user'][user])), random.choice(self.train_set['items_seen_by_user'][user])
+        return random.choice(list(self.train_set['items_seen_by_user'][user])), random.choice(self.train_set['items_unobserved'][user])
 
     def predict_score(self, user, item):
         """

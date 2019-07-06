@@ -18,7 +18,7 @@ __author__ = 'Arthur Fortes <fortes.arthur@gmail.com>'
 
 class BaseItemRecommendation(object):
     def __init__(self, train_file, test_file, output_file=None, as_binary=False, rank_length=10,
-                 similarity_metric="cosine", sep='\t', output_sep='\t'):
+                 similarity_metric="cosine", sep='\t', output_sep='\t', verbose=False):
         """
          This class is base for all item recommendation algorithms. Inherits the class Recommender
          and implements / adds common methods and attributes for rank approaches.
@@ -59,6 +59,7 @@ class BaseItemRecommendation(object):
         self.rank_length = rank_length
         self.sep = sep
         self.output_sep = output_sep
+        self.verbose = verbose
 
         # internal vars
         self.item_to_item_id = {}
@@ -80,15 +81,18 @@ class BaseItemRecommendation(object):
         Method to initialize recommender algorithm.s
 
         """
-        if isinstance(self.train_file, str):
-            self.train_set = ReadFile(self.train_file, sep=self.sep, as_binary=self.as_binary).read()
-        else:
-            self.train_set = ReadDataframe(self.train_file, as_binary=self.as_binary).read() 
+        
+        if isinstance(self.train_file, str):            
+            self.train_set = ReadFile(self.train_file, sep=self.sep, as_binary=self.as_binary, verbose=self.verbose).read()
+        else:            
+            self.train_set = ReadDataframe(self.train_file, as_binary=self.as_binary, verbose=self.verbose).read() 
 
         if self.test_file is not None:
             if isinstance(self.test_file, str):
+                if (self.verbose): print ("> Reading test data from file")
                 self.test_set = ReadFile(self.test_file, sep=self.sep).read() 
             else:
+                if (self.verbose): print ("> Reading test data from dataframe")
                 self.test_set = ReadDataframe(self.test_file).read() 
 
             self.users = sorted(set(list(self.train_set['users']) + list(self.test_set['users'])))
@@ -104,12 +108,12 @@ class BaseItemRecommendation(object):
             self.user_to_user_id.update({user: u})
             self.user_id_to_user.update({u: user})
 
+        if (self.verbose): print ("> Data read")
+
     def create_matrix(self):
-        """
-        Method to create a feedback matrix
+        """ Method to create a feedback matrix """
 
-        """
-
+        if (self.verbose): print ("> Creating utility matrix")
         self.matrix = np.zeros((len(self.users), len(self.items)))
 
         for user in self.train_set['users']:
@@ -160,6 +164,7 @@ class BaseItemRecommendation(object):
 
         """
 
+        if (self.verbose): print ("> Evaluating results")
         self.evaluation_results = {}
 
         if metrics is None:
@@ -191,13 +196,13 @@ class BaseItemRecommendation(object):
 
         """
 
-        # read files
         self.read_data()
+        if (self.verbose): print ("> Computing recommendations")
 
         # initialize empty ranking (Don't remove: important to Cross Validation)
         self.ranking = []
 
-        if verbose:
+        if verbose or self.verbose:
             test_info = None
 
             main_info = {
@@ -206,7 +211,7 @@ class BaseItemRecommendation(object):
                 'n_items': len(self.train_set['items']),
                 'n_interactions': self.train_set['number_interactions'],
                 'sparsity': self.train_set['sparsity']
-                    }
+            }
 
             if self.test_file is not None:
                 test_info = {

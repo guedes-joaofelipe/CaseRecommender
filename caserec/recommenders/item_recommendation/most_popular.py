@@ -11,13 +11,14 @@
 
 from caserec.recommenders.item_recommendation.base_item_recommendation import BaseItemRecommendation
 from caserec.utils.extra_functions import timed
+import numpy as np
 
 __author__ = 'Arthur Fortes <fortes.arthur@gmail.com>'
 
 
 class MostPopular(BaseItemRecommendation):
     def __init__(self, train_file=None, test_file=None, output_file=None, as_binary=False, rank_length=10, sep='\t',
-                 output_sep='\t'):
+                 output_sep='\t', verbose = False):
         """
         Most Popular for Item Recommendation
 
@@ -54,16 +55,19 @@ class MostPopular(BaseItemRecommendation):
         """
 
         super(MostPopular, self).__init__(train_file=train_file, test_file=test_file, output_file=output_file,
-                                          as_binary=as_binary, rank_length=rank_length, sep=sep, output_sep=output_sep)
+                                          as_binary=as_binary, rank_length=rank_length, sep=sep, output_sep=output_sep, verbose=verbose)
 
         self.recommender_name = 'Most Popular'
+        if self.verbose: print ("> Initiated " + self.recommender_name + " recommender")
 
     def predict(self):
         """
             This method predict final result, building an rank of each user of the train set.
-
+            Results are stored on the self.ranking list as [(user, item, score)]
         """
 
+        # if 'df_feedback' not in self.train_set.keys():
+        # Performing count based on dict
         for user in set(self.users):
             predictions = list()
 
@@ -79,6 +83,29 @@ class MostPopular(BaseItemRecommendation):
 
             predictions = sorted(predictions, key=lambda x: -x[2])
             self.ranking += predictions[:self.rank_length]
+        # else:
+        #     # Performing count based on pd.DataFrame. This change was made in order to 
+        #     # decrease the complexity of the previous algorithm, which had multiple 'for' loops
+        #     # and resulted on a time-consuming execution on bigger dataset (MovieLens 1M for instance)
+            
+        #     # df_item_count: index(item), columns(['count'])
+        #     df_item_count = self.train_set['df_feedback'][['user', 'item']].groupby(by=['item']).count()
+        #     df_item_count.columns = ['count']
+        #     user_series = np.array([])
+        #     first_user = True
+
+        #     for user in set(self.users):
+        #         df_item_count_temp = df_item_count.loc[self.train_set['items_unobserved'].get(user, [])][:self.rank_length] 
+        #         user_series = np.append(user_series, np.repeat(user, df_item_count_temp.shape[0]))
+
+        #         if (first_user):
+        #             df_ranking_temp = df_item_count_temp.copy()
+        #             first_user = False
+        #         else:
+        #             df_ranking_temp = df_ranking_temp.append(df_item_count_temp)
+
+        #     df_ranking_temp['user'] = user_series
+        #     self.ranking = df_ranking_temp.reset_index(drop = False)[['user', 'item', 'count']].values.tolist()
 
     def compute(self, verbose=True, metrics=None, verbose_evaluation=True, as_table=False, table_sep='\t'):
         """
@@ -101,9 +128,9 @@ class MostPopular(BaseItemRecommendation):
 
         """
 
-        super(MostPopular, self).compute(verbose=verbose)
+        super(MostPopular, self).compute(verbose=self.verbose)
 
-        if verbose:
+        if self.verbose:
             print("prediction_time:: %4f sec" % timed(self.predict))
             print('\n')
 
@@ -114,3 +141,21 @@ class MostPopular(BaseItemRecommendation):
 
         if self.test_file is not None:
             self.evaluate(metrics, verbose_evaluation, as_table=as_table, table_sep=table_sep)
+
+if __name__ == '__main__':
+    import os 
+    import pandas as pd
+    from sklearn.model_selection import train_test_split
+    import time
+    
+    data_file = './../../../../../Datasets/MovieLens/100k_raw/u.data'    
+    # data_file = './../../../../../Datasets/MovieLens/1M_raw/ratings.dat'
+    df_feedback = pd.read_csv(data_file, sep='\t', header=None, names = ['user', 'item', 'feedback_value', 'timestamp'])
+    
+    df_train, df_test = train_test_split(df_feedback, test_size=0.3)
+    print ("Train size: {} \nTest size: {}".format(df_train.shape[0], df_test.shape[0]))
+
+    start_time = time.time()
+    model = MostPopular(train_file=df_train, test_file=df_test, rank_length=30, as_binary=True)        
+    model.compute(verbose=True)
+    print ("Elapsed time: ", time.time() - start_time)

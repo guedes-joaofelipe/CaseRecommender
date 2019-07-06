@@ -15,10 +15,11 @@ __author__ = 'Arthur Fortes <fortes.arthur@gmail.com>'
 class ReadData(object):
     """ An abstract class for ReadFile and ReadDataframe """
 
-    def __init__(self, names=None, as_binary=False, binary_col=2):        
+    def __init__(self, names=None, as_binary=False, binary_col=2, verbose=False):        
         self.names = names
         self.as_binary = as_binary
         self.binary_col = binary_col
+        self.verbose = verbose
 
     def read(self):
         """Method to be implemented for each child-class using their respective reading strategies"""
@@ -39,10 +40,11 @@ class ReadData(object):
     
 
 class ReadDataframe(ReadData):
-    def __init__(self, df_feedback, names=None, as_binary=False, binary_col=2):
+    def __init__(self, df_feedback, names=None, as_binary=False, binary_col=2, verbose=False):
 
-        super().__init__(names=names, as_binary=as_binary, binary_col=binary_col)
-    
+        super().__init__(names=names, as_binary=as_binary, binary_col=binary_col, verbose=verbose)
+
+        if (self.verbose): print ("> Reading data from dataframe")
         self.df_feedback = df_feedback        
         if names is not None:
             self.df_feedback.columns = names
@@ -56,28 +58,62 @@ class ReadDataframe(ReadData):
 
             """
 
-            dict_feedback = {}
+            dict_feedback = {} # To be filled as: {user_id: [item_id_1, item_id_2, ..., item_id_N]}
             items_unobserved = {}
             items_seen_by_user = {}
             users_viewed_item = {}            
 
-            list_users = self.df_feedback['user'].unique()
-            list_items = self.df_feedback['item'].unique()
+            list_users = list(np.sort(self.df_feedback['user'].unique()))
+            list_items = list(np.sort(self.df_feedback['item'].unique()))            
 
             number_interactions = self.df_feedback.shape[0]
+            if (self.verbose): print ("> There are {} interactions.".format(number_interactions))
+            if (self.verbose): print ("> Looping through {} users".format(len(list_users)))
 
+            ############################################
             for user_id in list_users:
                 items = self.df_feedback[self.df_feedback['user'] == user_id]['item']
                 values = self.df_feedback[self.df_feedback['user'] == user_id]['feedback_value'].apply(lambda x: 1.0 if self.as_binary else x)
                 dict_feedback[user_id] = dict(zip(items, values))    
                 items_seen_by_user[user_id] = list(items)
+            ############################################
                 
-            for item_id in self.df_feedback['item'].unique():
-                users = self.df_feedback[self.df_feedback['item'] == item_id]['user']
-                users_viewed_item[item_id] = list(users)
+            ############################################
+            # Setting user as index makes value search quicker         
+            # self.df_feedback.set_index(['user'], inplace=True)  
 
-            list_users = sorted(list(list_users))
-            list_items = sorted(list(list_items))
+            # for user_id in list_users:
+            #     df_user_temp = self.df_feedback.loc[user_id].copy()    
+            #     items = df_user_temp['item']
+            #     if len(df_user_temp.shape) == 1: # Only 1 row was found
+            #         values = df_user_temp['feedback_value'] if self.as_binary else 1
+            #         items_seen_by_user[user_id] = [items]
+            #         dict_feedback[user_id] = {items: values}
+            #     else:
+            #         values = df_user_temp['feedback_value'] if self.as_binary else np.repeat(1, df_user_temp['feedback_value'].shape[0]) 
+            #         items_seen_by_user[user_id] = list(items)
+            #         dict_feedback[user_id] = dict(zip(items, values))
+
+            # del df_user_temp
+            
+            # # Set index back to normal
+            # self.df_feedback.reset_index(drop = False, inplace=True) 
+            # self.df_feedback.set_index(['item'], inplace = True)
+            ############################################
+
+            if (self.verbose): print ("> Looping through {} items".format(len(list_items)))            
+            for item_id in list_items:
+                ############################################
+                    users = self.df_feedback[self.df_feedback['item'] == item_id]['user']
+                    users_viewed_item[item_id] = list(users)
+                ############################################
+                # users = self.df_feedback.loc[item_id]['user'].copy()
+                # users_viewed_item[item_id] = [users] if len(users.shape) == 0 else list(users)
+                ############################################
+
+            ############################################
+            # self.df_feedback.reset_index(drop = False, inplace=True) 
+            ############################################
 
             # Create a dictionary with unobserved items for each user / Map user with its respective id
             for user in list_users:
@@ -87,6 +123,7 @@ class ReadDataframe(ReadData):
             sparsity = (1 - (number_interactions / float(len(list_users) * len(list_items)))) * 100    
 
             dict_file = {
+                    'df_feedback': self.df_feedback,
                     'feedback': dict_feedback,
                     'users': list_users,
                     'items': list_items,
@@ -153,7 +190,7 @@ class ReadDataframe(ReadData):
         return dict_file
 
 class ReadFile(ReadData):
-    def __init__(self, input_file, sep='\t', header=None, names=None, as_binary=False, binary_col=2):
+    def __init__(self, input_file, sep='\t', header=None, names=None, as_binary=False, binary_col=2, verbose=False):
         """
         ReadFile is responsible to read and process all input files in the Case Recommender
 
@@ -179,7 +216,8 @@ class ReadFile(ReadData):
 
         """
 
-        super().__init__(names=names, as_binary=as_binary, binary_col=binary_col)        
+        super().__init__(names=names, as_binary=as_binary, binary_col=binary_col, verbose=verbose)        
+        if (self.verbose): print ("> Reading data from dataframe")            
         self.header=header 
         self.input_file = input_file
         self.sep = sep        
